@@ -1,10 +1,10 @@
 // Todo allow for users to pick the contracts they want to benchmark with
 use anyhow::{Ok, Result};
-use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::RevmMiddleware};
+use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::RevmMiddleware, bindings::{arbiter_math::{ArbiterMath, self}, arbiter_token::{ArbiterToken, self}}};
 use ethers::{
     core::{k256::ecdsa::SigningKey, utils::Anvil},
     middleware::SignerMiddleware,
-    providers::{Http, Provider},
+    providers::{Http, Provider, Middleware},
     signers::{LocalWallet, Signer, Wallet},
 };
 
@@ -41,4 +41,19 @@ async fn anvil_startup() -> Result<Arc<SignerMiddleware<Provider<Http>, Wallet<S
         wallet.with_chain_id(anvil.chain_id()),
     ));
     Ok(client)
+}
+
+pub(crate) async fn deploy_contracts_for_benchmarks<M: Middleware + 'static>(
+    client: Arc<M>,
+) -> Result<(ArbiterMath<M>, ArbiterToken<M>)> {
+    let math = arbiter_math::ArbiterMath::deploy(client.clone(), ())?
+        .send()
+        .await?;
+    let token = arbiter_token::ArbiterToken::deploy(
+        client.clone(),
+        ("Arbiter Token".to_string(), "ARBT".to_string(), 18_u8),
+    )?
+    .send()
+    .await?;
+    Ok((math, token))
 }

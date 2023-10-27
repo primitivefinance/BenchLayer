@@ -21,6 +21,7 @@ pub async fn bench_middleware<M: Middleware + 'static>(
     client: Arc<M>,
     label: &str,
 ) -> Result<()> {
+    println!("Start bench_middleware with label: {}", label);
     let wad = U256::from(10_u128.pow(18));
 
     // these are the contracts we are benching against
@@ -29,6 +30,7 @@ pub async fn bench_middleware<M: Middleware + 'static>(
 
     c.bench_function(&format!("{} Stateful Call", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
+            println!("Minting token");
             token_contract
                 .mint(client.default_sender().unwrap(), wad)
                 .send()
@@ -36,7 +38,7 @@ pub async fn bench_middleware<M: Middleware + 'static>(
                 .unwrap();
         })
     });
-
+    println!("Finished Stateful Call Benchmarks");
     c.bench_function(&format!("{} Stateless Call", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
             math_contract
@@ -46,21 +48,26 @@ pub async fn bench_middleware<M: Middleware + 'static>(
                 .unwrap();
         })
     });
+    println!("Finished Stateless Call Benchmarks");
     c.bench_function(&format!(" {} Deploys", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
             deployments(client.clone()).await.unwrap();
         })
     });
+    println!("Finished Deploy Benchmarks");
     c.bench_function(&format!("{} Lookups", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
             lookup(token_contract.clone()).await.unwrap();
         })
     });
+    println!("Finished Lookup Benchmarks");
+    println!("End bench_middleware with label: {}", label);
     Ok(())
 }
 
 #[allow(unused_imports)]
 mod tests {
+    use std::thread;
     use std::time::Duration;
 
     use super::*;
@@ -79,7 +86,7 @@ mod tests {
         let environment = EnvironmentBuilder::new().build();
         let arbiter_middleware = RevmMiddleware::new(&environment, Some("name")).unwrap();
 
-        // get anvil middlewar
+        // get anvil middleware
         let anvil = Anvil::new().spawn();
 
         // Create a client
