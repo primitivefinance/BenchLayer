@@ -1,5 +1,5 @@
 [package]
-name = "EtherBench"
+name = "ether_bench"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,5 +10,10 @@ ethers = { version = "2.0.10", features = ["celo"] }
 arbiter-core = { version = "0.6.3", features = ["contracts"]}
 anyhow = { version = "1.0.75" }
 criterion = { version = "0.5.1", features = ["async", "async_futures"] }
-tokio = { version = "1.13.0", features = ["macros", "full"] }
+tokio = { version = "1.32.0", features = ["macros", "full"] }
 serde = { version = "1.0.130", features = ["derive"] }
+
+async-trait =  { version = "0.1.74" }
+crossbeam-channel =  { version = "=0.5.8" }
+futures-timer = { version = "=3.0.2" }
+futures-locks = { version = "=0.7.1" }

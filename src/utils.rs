@@ -1,4 +1,5 @@
 // Todo allow for users to pick the contracts they want to benchmark with
+#![allow(dead_code)]
 use anyhow::{Ok, Result};
 use arbiter_core::{
     bindings::{
@@ -53,7 +54,6 @@ async fn anvil_startup() -> Result<Arc<SignerMiddleware<Provider<Http>, Wallet<S
 pub(crate) async fn deploy_contracts_for_benchmarks<M: Middleware + 'static>(
     client: Arc<M>,
 ) -> Result<(ArbiterMath<M>, ArbiterToken<M>)> {
-
     println!("Deploying contracts for benchmarks");
     let math = arbiter_math::ArbiterMath::deploy(client.clone(), ())?
         .send()

@@ -1,5 +1,5 @@
 use arbiter_core::bindings::{
-    arbiter_math::{self, ArbiterMath},
+    arbiter_math::ArbiterMath,
     arbiter_token::{self, ArbiterToken},
 };
 
@@ -19,10 +19,11 @@ pub(crate) async fn lookup<M: Middleware + 'static>(token: ArbiterToken<M>) -> R
     Ok(())
 }
 
-pub(crate) async fn create_call<M: Middleware + 'static>(
-    client: Arc<M>,
-) -> Result<()> {
-    bindings::counter::Counter::deploy(client.clone(), ()).unwrap().send().await?;
+pub(crate) async fn create_call<M: Middleware + 'static>(client: Arc<M>) -> Result<()> {
+    bindings::counter::Counter::deploy(client.clone(), ())
+        .unwrap()
+        .send()
+        .await?;
     Ok(())
 }
 

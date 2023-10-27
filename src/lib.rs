@@ -2,10 +2,7 @@
 
 use anyhow::{Ok, Result};
 use bench_functions::create_call;
-use ethers::{
-    providers::Middleware,
-    types::{I256, U256},
-};
+use ethers::{providers::Middleware, utils::AnvilInstance};
 
 use std::sync::Arc;
 
@@ -14,17 +11,16 @@ use criterion::async_executor::FuturesExecutor;
 use criterion::Criterion;
 
 mod bench_functions;
-mod utils;
 mod bindings;
+mod utils;
 
 pub async fn bench_middleware<M: Middleware + 'static>(
     c: &mut Criterion,
     client: Arc<M>,
     label: &str,
+    _anvil: Option<AnvilInstance>,
 ) -> Result<()> {
     println!("Start bench_middleware with label: {}", label);
-    let wad = U256::from(10_u128.pow(18));
-
     // these are the contracts we are benching against
     // this can happily change if people want to bench against more general contracts
     let (math_contract, token_contract) =
@@ -53,88 +49,118 @@ pub async fn bench_middleware<M: Middleware + 'static>(
         })
     });
     println!("End bench_middleware with label: {}", label);
+    if let Some(anvil) = _anvil {
+        drop(anvil);
+    }
     Ok(())
 }
 
 #[allow(unused_imports)]
 mod tests {
-    use std::thread;
     use std::time::Duration;
+    use std::{str::FromStr, thread};
 
-    use crate::utils::deploy_contracts_for_benchmarks;
+    use crate::{bindings::counter::Counter, utils::deploy_contracts_for_benchmarks};
 
     use super::*;
 
-    use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::RevmMiddleware, bindings::arbiter_math};
-    use ethers::utils::Anvil;
+    use arbiter_core::{
+        bindings::arbiter_math::ArbiterMath, environment::builder::EnvironmentBuilder,
+        middleware::RevmMiddleware,
+    };
     use ethers::{
         core::k256::ecdsa::SigningKey,
         middleware::SignerMiddleware,
         providers::{Http, Provider},
         signers::{LocalWallet, Signer, Wallet},
+        types::Address,
+        utils::{Anvil, AnvilInstance},
     };
-    use serde::de;
+
     #[tokio::test]
-    async fn arbiter_anvil() {
+    async fn arbiter() {
         // get arbiter middleware
         let environment = EnvironmentBuilder::new().build();
         let arbiter_middleware = RevmMiddleware::new(&environment, Some("name")).unwrap();
 
-        // get anvil middleware
-        let anvil = Anvil::new().spawn();
+        let mut c = Criterion::default().configure_from_args();
 
+        let arbiter_results = bench_middleware(&mut c, arbiter_middleware, "Arbiter", None).await;
+        if let Err(err) = &arbiter_results {
+            eprintln!("Error with Arbiter middleware: {:?}", err);
+        }
+        assert!(arbiter_results.is_ok());
+        // let arbiter_results = arbiter_results.unwrap();
+        // let anvil_results = anvil_results.unwrap();
+    }
+
+    #[tokio::test]
+    async fn anvil() {
+        let anvil = Anvil::new().spawn();
         // Create a client
         let provider = Provider::<Http>::try_from(anvil.endpoint())
             .unwrap()
             .interval(Duration::ZERO);
 
-        let wallet: LocalWallet = anvil.keys()[0].clone().into();
+        // check client is working
+        let block = provider.get_block_number().await;
+        assert!(block.is_ok());
+        let block = block.unwrap();
+        assert_eq!(block, 0_u64.into());
+
+        let wallet = LocalWallet::from(anvil.keys()[0].clone());
+        assert_eq!(
+            wallet.address(),
+            Address::from_str("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266").unwrap()
+        );
         let anvil_middleware = Arc::new(SignerMiddleware::new(
             provider,
             wallet.with_chain_id(anvil.chain_id()),
         ));
 
         let mut c = Criterion::default().configure_from_args();
-
-        let arbiter_results = bench_middleware(&mut c, arbiter_middleware, "Arbiter").await;
-        if let Err(err) = &arbiter_results {
-            eprintln!("Error with Arbiter middleware: {:?}", err);
-        }
-        assert!(arbiter_results.is_ok());
-        // let arbiter_results = arbiter_results.unwrap();
-
-        let anvil_results = bench_middleware(&mut c, anvil_middleware, "Anvil").await;
+        let anvil_results = bench_middleware(&mut c, anvil_middleware, "Anvil", Some(anvil)).await;
         if let Err(err) = &anvil_results {
             eprintln!("Error with Anvil middleware: {:?}", err);
         }
         assert!(anvil_results.is_ok());
-        drop(anvil);
-        // let anvil_results = anvil_results.unwrap();
     }
 
     #[tokio::test]
-    async fn test_deployments_anvil() {
+    async fn debugging_anvil_deployments() {
         // get anvil middleware
-        let anvil = Anvil::new().spawn();
 
+        let anvil = Anvil::new().spawn();
         // Create a client
         let provider = Provider::<Http>::try_from(anvil.endpoint())
             .unwrap()
             .interval(Duration::ZERO);
 
-        let wallet: LocalWallet = anvil.keys()[0].clone().into();
+        // check client is working
+        let block = provider.get_block_number().await;
+        assert!(block.is_ok());
+        let block = block.unwrap();
+        assert_eq!(block, 0_u64.into());
+
+        let wallet = LocalWallet::from(anvil.keys()[0].clone());
+        assert_eq!(
+            wallet.address(),
+            Address::from_str("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266").unwrap()
+        );
+        // let wallet: LocalWallet = anvil.keys()[0].clone().into();
         let anvil_middleware = Arc::new(SignerMiddleware::new(
             provider,
             wallet.with_chain_id(anvil.chain_id()),
         ));
 
-        let math = arbiter_math::ArbiterMath::deploy(anvil_middleware.clone(), ());
-
-        assert!(math.is_ok());
-        let math = math.unwrap().send().await;
-        assert!(math.is_ok());
-
-        // let result = deploy_contracts_for_benchmarks(anvil_middleware).await;
-        // assert!(result.is_ok());
+        println!("{:?}#", anvil.port());
+        // or the other arbiter bindings
+        let math = ArbiterMath::deploy(anvil_middleware.clone(), ())
+            .unwrap()
+            .send()
+            .await
+            .unwrap();
+        println!("1");
+        println!("{:#?}", math.address());
     }
 }

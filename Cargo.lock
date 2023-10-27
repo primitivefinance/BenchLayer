@@ -3,18 +3,6 @@
 version = 3
 
 [[package]]
-name = "EtherBench"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "arbiter-core",
- "criterion",
- "ethers",
- "serde",
- "tokio",
-]
-
-[[package]]
 name = "Inflector"
 version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -711,13 +699,14 @@ checksum = "ed3d0b5ff30645a68f35ece8cea4556ca14ef8a1651455f789a099a0513532a6"
 
 [[package]]
 name = "const-hex"
-version = "1.9.1"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c37be52ef5e3b394db27a2341010685ad5103c72ac15ce2e9420a7e8f93f342c"
+checksum = "a5104de16b218eddf8e34ffe2f86f74bfa4e61e95a1b89732fccf6325efd0557"
 dependencies = [
  "cfg-if",
  "cpufeatures",
  "hex",
+ "proptest",
  "serde",
 ]
 
@@ -1205,6 +1194,22 @@ dependencies = [
  "impl-serde",
  "scale-info",
  "tiny-keccak",
+]
+
+[[package]]
+name = "ether_bench"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "arbiter-core",
+ "async-trait",
+ "criterion",
+ "crossbeam-channel",
+ "ethers",
+ "futures-locks",
+ "futures-timer",
+ "serde",
+ "tokio",
 ]
 
 [[package]]
@@ -3031,10 +3036,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c003ac8c77cb07bb74f5f198bce836a689bcd5a42574612bf14d17bfd08c20e"
 dependencies = [
  "bitflags 2.4.1",
+ "lazy_static",
  "num-traits",
  "rand",
  "rand_chacha",
  "rand_xorshift",
+ "regex-syntax 0.7.5",
  "unarray",
 ]
 
@@ -4696,18 +4703,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.7.15"
+version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81ba595b9f2772fbee2312de30eeb80ec773b4cb2f1e8098db024afadda6c06f"
+checksum = "c552e97c5a9b90bc8ddc545b5106e798807376356688ebaa3aee36f44f8c4b9e"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.7.15"
+version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "772666c41fb6dceaf520b564b962d738a8e1a83b41bd48945f50837aed78bb1d"
+checksum = "964bc0588d7ac1c0243d0427ef08482618313702bbb014806cb7ab3da34d3d99"
 dependencies = [
  "proc-macro2",
  "quote",
