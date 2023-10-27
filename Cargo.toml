@@ -11,3 +11,4 @@ arbiter-core = { version = "0.6.3", features = ["contracts"]}
 anyhow = { version = "1.0.75" }
 criterion = { version = "0.5.1", features = ["async", "async_futures"] }
 tokio = { version = "1.13.0", features = ["macros", "full"] }
+serde = { version = "1.0.130", features = ["derive"] }

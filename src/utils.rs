@@ -1,10 +1,17 @@
 // Todo allow for users to pick the contracts they want to benchmark with
 use anyhow::{Ok, Result};
-use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::RevmMiddleware, bindings::{arbiter_math::{ArbiterMath, self}, arbiter_token::{ArbiterToken, self}}};
+use arbiter_core::{
+    bindings::{
+        arbiter_math::{self, ArbiterMath},
+        arbiter_token::{self, ArbiterToken},
+    },
+    environment::builder::EnvironmentBuilder,
+    middleware::RevmMiddleware,
+};
 use ethers::{
     core::{k256::ecdsa::SigningKey, utils::Anvil},
     middleware::SignerMiddleware,
-    providers::{Http, Provider, Middleware},
+    providers::{Http, Middleware, Provider},
     signers::{LocalWallet, Signer, Wallet},
 };
 

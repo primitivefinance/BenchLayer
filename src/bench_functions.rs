@@ -4,7 +4,10 @@ use arbiter_core::bindings::{
 };
 
 use anyhow::{Ok, Result};
-use ethers::{providers::Middleware, types::{Address, U256, I256}};
+use ethers::{
+    providers::Middleware,
+    types::{Address, I256, U256},
+};
 
 use std::sync::Arc;
 

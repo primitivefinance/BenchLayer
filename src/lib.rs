@@ -1,7 +1,7 @@
 // Todo allow for users to pick the contracts they want to benchmark with
 
 use anyhow::{Ok, Result};
-use bench_functions::deployments;
+use bench_functions::create_call;
 use ethers::{
     providers::Middleware,
     types::{I256, U256},
@@ -15,6 +15,7 @@ use criterion::Criterion;
 
 mod bench_functions;
 mod utils;
+mod bindings;
 
 pub async fn bench_middleware<M: Middleware + 'static>(
     c: &mut Criterion,
@@ -26,7 +27,8 @@ pub async fn bench_middleware<M: Middleware + 'static>(
 
     // these are the contracts we are benching against
     // this can happily change if people want to bench against more general contracts
-    let (math_contract, token_contract) = deployments(client.clone()).await?;
+    let (math_contract, token_contract) =
+        utils::deploy_contracts_for_benchmarks(client.clone()).await?;
 
     c.bench_function(&format!("{} Stateful Call", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
@@ -49,9 +51,9 @@ pub async fn bench_middleware<M: Middleware + 'static>(
         })
     });
     println!("Finished Stateless Call Benchmarks");
-    c.bench_function(&format!(" {} Deploys", label), |b| {
+    c.bench_function(&format!(" {} Create", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
-            deployments(client.clone()).await.unwrap();
+            create_call(client.clone()).await.unwrap();
         })
     });
     println!("Finished Deploy Benchmarks");
