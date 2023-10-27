@@ -1,4 +1,3 @@
-
 use arbiter_core::{
     bindings::{
         arbiter_math::{self, ArbiterMath},
@@ -18,6 +17,11 @@ use ethers::{
     utils::AnvilInstance,
 };
 
+use std::{
+    convert::TryFrom,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 pub(crate) async fn lookup<M: Middleware + 'static>(token: ArbiterToken<M>) -> Result<()> {
     let address = token.client().default_sender().unwrap();
     token.balance_of(address).call().await?;

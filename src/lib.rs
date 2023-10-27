@@ -9,6 +9,7 @@ use arbiter_core::{
 };
 
 use anyhow::{Ok, Result};
+use bench_functions::deployments;
 use ethers::{
     core::{k256::ecdsa::SigningKey, utils::Anvil},
     middleware::SignerMiddleware,
@@ -18,7 +19,18 @@ use ethers::{
     utils::AnvilInstance,
 };
 
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
+
+use crate::bench_functions::lookup;
+use criterion::async_executor::FuturesExecutor;
+use criterion::Criterion;
+use criterion::{criterion_group, criterion_main};
+
 mod bench_functions;
+mod utils;
 
 pub async fn bench_middleware<M: Middleware + 'static>(
     c: &mut Criterion,
@@ -63,13 +75,44 @@ pub async fn bench_middleware<M: Middleware + 'static>(
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
+
+mod tests{
     use super::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    #[tokio::test]
+    async fn arbiter_anvil() {
+        // get arbiter middleware
+        let environment = EnvironmentBuilder::new().build();
+        let arbiter_middleware = RevmMiddleware::new(&environment, Some("name")).unwrap();
+
+        // get anvil middlewar
+        let anvil = Anvil::new().spawn();
+
+        // Create a client
+        let provider = Provider::<Http>::try_from(anvil.endpoint())
+            .unwrap()
+            .interval(Duration::ZERO);
+    
+        let wallet: LocalWallet = anvil.keys()[0].clone().into();
+        let anvil_middleware = Arc::new(SignerMiddleware::new(
+            provider,
+            wallet.with_chain_id(anvil.chain_id()),
+        ));
+
+        let mut c = Criterion::default().configure_from_args();
+
+        let arbiter_results = bench_middleware(&mut c, arbiter_middleware, "Arbiter").await;
+        if let Err(err) = &arbiter_results {
+            eprintln!("Error with Arbiter middleware: {:?}", err);
+        }        
+        assert!(arbiter_results.is_ok());
+        // let arbiter_results = arbiter_results.unwrap();
+
+        let anvil_results = bench_middleware(&mut c, anvil_middleware, "Anvil").await;
+        if let Err(err) = &anvil_results {
+            eprintln!("Error with Anvil middleware: {:?}", err);
+        }        
+        assert!(anvil_results.is_ok());
+        // let anvil_results = anvil_results.unwrap();
     }
 }
