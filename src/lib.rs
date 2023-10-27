@@ -9,7 +9,7 @@ use ethers::{
 
 use std::sync::Arc;
 
-use crate::bench_functions::lookup;
+use crate::bench_functions::{lookup, stateful_call, stateless_call};
 use criterion::async_executor::FuturesExecutor;
 use criterion::Criterion;
 
@@ -32,37 +32,26 @@ pub async fn bench_middleware<M: Middleware + 'static>(
 
     c.bench_function(&format!("{} Stateful Call", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
-            println!("Minting token");
-            token_contract
-                .mint(client.default_sender().unwrap(), wad)
-                .send()
+            stateful_call(token_contract.clone(), client.default_sender().unwrap())
                 .await
                 .unwrap();
         })
     });
-    println!("Finished Stateful Call Benchmarks");
     c.bench_function(&format!("{} Stateless Call", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
-            math_contract
-                .cdf(I256::from(10_u128.pow(18)))
-                .call()
-                .await
-                .unwrap();
+            stateless_call(math_contract.clone()).await.unwrap();
         })
     });
-    println!("Finished Stateless Call Benchmarks");
     c.bench_function(&format!(" {} Create", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
             create_call(client.clone()).await.unwrap();
         })
     });
-    println!("Finished Deploy Benchmarks");
     c.bench_function(&format!("{} Lookups", label), |b| {
         b.to_async(FuturesExecutor).iter(|| async {
             lookup(token_contract.clone()).await.unwrap();
         })
     });
-    println!("Finished Lookup Benchmarks");
     println!("End bench_middleware with label: {}", label);
     Ok(())
 }
@@ -72,9 +61,11 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
+    use crate::utils::deploy_contracts_for_benchmarks;
+
     use super::*;
 
-    use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::RevmMiddleware};
+    use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::RevmMiddleware, bindings::arbiter_math};
     use ethers::utils::Anvil;
     use ethers::{
         core::k256::ecdsa::SigningKey,
@@ -82,6 +73,7 @@ mod tests {
         providers::{Http, Provider},
         signers::{LocalWallet, Signer, Wallet},
     };
+    use serde::de;
     #[tokio::test]
     async fn arbiter_anvil() {
         // get arbiter middleware
@@ -116,6 +108,33 @@ mod tests {
             eprintln!("Error with Anvil middleware: {:?}", err);
         }
         assert!(anvil_results.is_ok());
+        drop(anvil);
         // let anvil_results = anvil_results.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_deployments_anvil() {
+        // get anvil middleware
+        let anvil = Anvil::new().spawn();
+
+        // Create a client
+        let provider = Provider::<Http>::try_from(anvil.endpoint())
+            .unwrap()
+            .interval(Duration::ZERO);
+
+        let wallet: LocalWallet = anvil.keys()[0].clone().into();
+        let anvil_middleware = Arc::new(SignerMiddleware::new(
+            provider,
+            wallet.with_chain_id(anvil.chain_id()),
+        ));
+
+        let math = arbiter_math::ArbiterMath::deploy(anvil_middleware.clone(), ());
+
+        assert!(math.is_ok());
+        let math = math.unwrap().send().await;
+        assert!(math.is_ok());
+
+        // let result = deploy_contracts_for_benchmarks(anvil_middleware).await;
+        // assert!(result.is_ok());
     }
 }

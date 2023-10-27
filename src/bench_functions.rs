@@ -11,6 +11,8 @@ use ethers::{
 
 use std::sync::Arc;
 
+use crate::bindings;
+
 pub(crate) async fn lookup<M: Middleware + 'static>(token: ArbiterToken<M>) -> Result<()> {
     let address = token.client().default_sender().unwrap();
     token.balance_of(address).call().await?;
@@ -19,20 +21,12 @@ pub(crate) async fn lookup<M: Middleware + 'static>(token: ArbiterToken<M>) -> R
 
 pub(crate) async fn create_call<M: Middleware + 'static>(
     client: Arc<M>,
-) -> Result<(ArbiterMath<M>, ArbiterToken<M>)> {
-    let math = arbiter_math::ArbiterMath::deploy(client.clone(), ())?
-        .send()
-        .await?;
-    let token = arbiter_token::ArbiterToken::deploy(
-        client.clone(),
-        ("Arbiter Token".to_string(), "ARBT".to_string(), 18_u8),
-    )?
-    .send()
-    .await?;
-    Ok((math, token))
+) -> Result<()> {
+    bindings::counter::Counter::deploy(client.clone(), ()).unwrap().send().await?;
+    Ok(())
 }
 
-pub(crate) async fn stateless_call_loop<M: Middleware + 'static>(
+pub(crate) async fn stateless_call<M: Middleware + 'static>(
     arbiter_math: ArbiterMath<M>,
 ) -> Result<()> {
     let iwad = I256::from(10_u128.pow(18));
@@ -40,7 +34,7 @@ pub(crate) async fn stateless_call_loop<M: Middleware + 'static>(
     Ok(())
 }
 
-pub(crate) async fn stateful_call_loop<M: Middleware + 'static>(
+pub(crate) async fn stateful_call<M: Middleware + 'static>(
     arbiter_token: arbiter_token::ArbiterToken<M>,
     mint_address: Address,
 ) -> Result<()> {

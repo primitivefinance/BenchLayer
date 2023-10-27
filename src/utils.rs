@@ -53,12 +53,16 @@ async fn anvil_startup() -> Result<Arc<SignerMiddleware<Provider<Http>, Wallet<S
 pub(crate) async fn deploy_contracts_for_benchmarks<M: Middleware + 'static>(
     client: Arc<M>,
 ) -> Result<(ArbiterMath<M>, ArbiterToken<M>)> {
+
+    println!("Deploying contracts for benchmarks");
     let math = arbiter_math::ArbiterMath::deploy(client.clone(), ())?
         .send()
         .await?;
+
+    println!("Deployed math contract");
     let token = arbiter_token::ArbiterToken::deploy(
         client.clone(),
-        ("Arbiter Token".to_string(), "ARBT".to_string(), 18_u8),
+        ("Token".to_string(), "TEST".to_string(), 18_u8),
     )?
     .send()
     .await?;
