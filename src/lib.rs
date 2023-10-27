@@ -1,33 +1,17 @@
 // Todo allow for users to pick the contracts they want to benchmark with
-use arbiter_core::{
-    bindings::{
-        arbiter_math::{self, ArbiterMath},
-        arbiter_token::{self, ArbiterToken},
-    },
-    environment::{builder::EnvironmentBuilder, Environment},
-    middleware::RevmMiddleware,
-};
 
 use anyhow::{Ok, Result};
 use bench_functions::deployments;
 use ethers::{
-    core::{k256::ecdsa::SigningKey, utils::Anvil},
-    middleware::SignerMiddleware,
-    providers::{Http, Middleware, Provider},
-    signers::{LocalWallet, Signer, Wallet},
-    types::{Address, I256, U256},
-    utils::AnvilInstance,
+    providers::Middleware,
+    types::{I256, U256},
 };
 
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::sync::Arc;
 
 use crate::bench_functions::lookup;
 use criterion::async_executor::FuturesExecutor;
 use criterion::Criterion;
-use criterion::{criterion_group, criterion_main};
 
 mod bench_functions;
 mod utils;
@@ -75,10 +59,20 @@ pub async fn bench_middleware<M: Middleware + 'static>(
     Ok(())
 }
 
+#[allow(unused_imports)]
+mod tests {
+    use std::time::Duration;
 
-mod tests{
     use super::*;
 
+    use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::RevmMiddleware};
+    use ethers::utils::Anvil;
+    use ethers::{
+        core::k256::ecdsa::SigningKey,
+        middleware::SignerMiddleware,
+        providers::{Http, Provider},
+        signers::{LocalWallet, Signer, Wallet},
+    };
     #[tokio::test]
     async fn arbiter_anvil() {
         // get arbiter middleware
@@ -92,7 +86,7 @@ mod tests{
         let provider = Provider::<Http>::try_from(anvil.endpoint())
             .unwrap()
             .interval(Duration::ZERO);
-    
+
         let wallet: LocalWallet = anvil.keys()[0].clone().into();
         let anvil_middleware = Arc::new(SignerMiddleware::new(
             provider,
@@ -104,14 +98,14 @@ mod tests{
         let arbiter_results = bench_middleware(&mut c, arbiter_middleware, "Arbiter").await;
         if let Err(err) = &arbiter_results {
             eprintln!("Error with Arbiter middleware: {:?}", err);
-        }        
+        }
         assert!(arbiter_results.is_ok());
         // let arbiter_results = arbiter_results.unwrap();
 
         let anvil_results = bench_middleware(&mut c, anvil_middleware, "Anvil").await;
         if let Err(err) = &anvil_results {
             eprintln!("Error with Anvil middleware: {:?}", err);
-        }        
+        }
         assert!(anvil_results.is_ok());
         // let anvil_results = anvil_results.unwrap();
     }
